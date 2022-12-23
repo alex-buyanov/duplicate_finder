@@ -60,16 +60,6 @@ def get_duplicates(files: List[Path]) -> Dict[str, List[Path]]:
     return definite_duplicates
 
 
-def get_all_files(folder: Path) -> List[Path]:
-    root.info(f"Getting list of files from {folder}. It may take a while...")
-    result = []
-    for path in folder.rglob("*"):
-        if path.is_file():
-            root.debug(f"Added to file list: {path}")
-            result.append(path)
-    return result
-
-
 def output_to_stdout(duplicates: Dict[str, List[Path]]) -> None:
     for hash_str, files in duplicates.items():
         root.info(f"{hash_str}:")
@@ -113,12 +103,17 @@ def main() -> None:
     action, folder = args.action, Path(args.folder)
 
     # Retrieve list of files
-    files = get_all_files(Path(args.folder))
+    root.info(f"Getting list of files from {folder}. It may take a while...")
+    files = [f for f in folder.rglob("*") if f.is_file()]
     root.info(f"Collected {len(files)} files")
 
     # Get duplicates
+    root.info("Hashing collected files in search of duplicates. This will take even more time...")
     duplicates = get_duplicates(files)
-    root.info(f"{duplicates}")
+    if (duplicates):
+        root.info(f"Found {len(duplicates)} duplicated files")
+    else:
+        root.info(f"No duplicates were found. Have a nice day.")
 
     # Action
     if action == "delete":
@@ -130,7 +125,7 @@ def main() -> None:
     else:
         output_to_stdout(duplicates)
 
-    root.info("All done!")
+    root.info("All done.")
 
 
 if __name__ == '__main__':
