@@ -7,14 +7,14 @@ from argparse import ArgumentParser
 from pathlib import Path
 from typing import List, Dict
 
-root = logging.getLogger()
-root.setLevel(logging.DEBUG)
-
+# Logger setup
+log = logging.getLogger()
+log.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
+handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(message)s')
 handler.setFormatter(formatter)
-root.addHandler(handler)
+log.addHandler(handler)
 
 
 def get_hash(path: Path, full_scan=False) -> str:
@@ -62,9 +62,9 @@ def get_duplicates(files: List[Path]) -> Dict[str, List[Path]]:
 
 def output_to_stdout(duplicates: Dict[str, List[Path]]) -> None:
     for hash_str, files in duplicates.items():
-        root.info(f"{hash_str}:")
+        log.info(f"{hash_str}:")
         for file in files:
-            root.info(f"\t{file}")
+            log.info(f"\t{file}")
 
 
 def output_to_file(duplicates: Dict[str, List[Path]]) -> None:
@@ -91,7 +91,7 @@ def delete_duplicates(duplicates: Dict[str, List[Path]]) -> None:
 
 
 def main() -> None:
-    root.info("Starting...")
+    log.info("Starting...")
 
     # Parse args
     parser = ArgumentParser()
@@ -103,17 +103,17 @@ def main() -> None:
     action, folder = args.action, Path(args.folder)
 
     # Retrieve list of files
-    root.info(f"Getting list of files from {folder}. It may take a while...")
+    log.info(f"Getting list of files from {folder}. It may take a while...")
     files = [f for f in folder.rglob("*") if f.is_file()]
-    root.info(f"Collected {len(files)} files")
+    log.info(f"Collected {len(files)} files")
 
     # Get duplicates
-    root.info("Hashing collected files in search of duplicates. This will take even more time...")
+    log.info("Hashing collected files in search of duplicates. This will take even more time...")
     duplicates = get_duplicates(files)
     if (duplicates):
-        root.info(f"Found {len(duplicates)} duplicated files")
+        log.info(f"Found {len(duplicates)} duplicated files")
     else:
-        root.info(f"No duplicates were found. Have a nice day.")
+        log.info(f"No duplicates were found. Have a nice day.")
 
     # Action
     if action == "delete":
@@ -125,7 +125,7 @@ def main() -> None:
     else:
         output_to_stdout(duplicates)
 
-    root.info("All done.")
+    log.info("All done.")
 
 
 if __name__ == '__main__':
