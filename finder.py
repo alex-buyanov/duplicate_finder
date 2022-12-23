@@ -60,7 +60,7 @@ def get_duplicates(files: List[Path]) -> Dict[str, List[Path]]:
     return definite_duplicates
 
 
-def list_files(folder: Path) -> List[Path]:
+def get_all_files(folder: Path) -> List[Path]:
     root.info(f"Getting list of files from {folder}. It may take a while...")
     result = []
     for path in folder.rglob("*"):
@@ -70,19 +70,50 @@ def list_files(folder: Path) -> List[Path]:
     return result
 
 
+def output_to_stdout(duplicates: Dict[str, List[Path]]) -> None:
+    for hash_str, files in duplicates.items():
+        root.info(f"{hash_str}:")
+        for file in files:
+            root.info(f"\t{file}")
+
+
+def output_to_file(duplicates: Dict[str, List[Path]]) -> None:
+    with open("results.txt", "w") as output:
+        for hash_str, files in duplicates.items():
+            print(f"{hash_str}:", file=output)
+            for file in files:
+                print(f"\t{file}", file=output)
+
+
+def move_duplicates(duplicates: Dict[str, List[Path]], output_folder: Path) -> None:
+    os.mkdir(output_folder)
+    for hash_str, files in duplicates.items():
+        subfolder = output_folder.joinpath(hash_str)
+        os.mkdir(subfolder)
+        for file in files:
+            shutil.move(str(file), str(subfolder))
+
+
+def delete_duplicates(duplicates: Dict[str, List[Path]]) -> None:
+    for v in duplicates.values():
+        for f in v[1:]:  # Leave one of the files untouched
+            f.unlink(True)
+
+
 def main() -> None:
     root.info("Starting...")
 
     # Parse args
     parser = ArgumentParser()
-    parser.add_argument("folder", help="Directory to search duplicates in (recursively)")
-    parser.add_argument("-a", "--action", help="Action to perform when duplicates are found.",
-                        choices=["delete", "list", "file", "move"], default="list")
+    parser.add_argument("action", help="Action to perform when duplicates are found",
+                        choices=["delete", "list", "file", "move"])
+    parser.add_argument("folder", help="Directory to recursively search duplicates in")
 
     args = parser.parse_args()
+    action, folder = args.action, Path(args.folder)
 
     # Retrieve list of files
-    files = list_files(Path(args.folder))
+    files = get_all_files(Path(args.folder))
     root.info(f"Collected {len(files)} files")
 
     # Get duplicates
@@ -90,35 +121,14 @@ def main() -> None:
     root.info(f"{duplicates}")
 
     # Action
-    action = args.action.lower()
-
-    if action in ("d", "delete"):
-        # Delete duplicates leaving only one file behind
-        for v in duplicates.values():
-            for f in v[1:]:  # Leave one of the files untouched
-                f.unlink(True)
-    elif action in ("m", "move"):
-        # Move duplicated files into "duplicates" folder
-        output_folder = Path(args.folder).joinpath("duplicates")
-        os.mkdir(output_folder)
-        for hash_str, files in duplicates.items():
-            subfolder = output_folder.joinpath(hash_str)
-            os.mkdir(subfolder)
-            for file in files:
-                shutil.move(str(file), str(subfolder))
-    elif action in ("f", "file"):
-        # List files in result.txt
-        with open("results.txt", "w") as output:
-            for hash_str, files in duplicates.items():
-                print(f"{hash_str}:", file=output)
-                for file in files:
-                    print(f"\t{file}", file=output)
+    if action == "delete":
+        delete_duplicates(duplicates)
+    elif action == "move":
+        move_duplicates(duplicates, Path(args.folder).joinpath("duplicates"))
+    elif action == "file":
+        output_to_file(duplicates)
     else:
-        # List files in stdout
-        for hash_str, files in duplicates.items():
-            root.info(f"{hash_str}:")
-            for file in files:
-                root.info(f"\t{file}")
+        output_to_stdout(duplicates)
 
     root.info("All done!")
 
