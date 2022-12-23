@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 from argparse import ArgumentParser
+from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
 
@@ -129,12 +130,6 @@ def main() -> None:
     args = parser.parse_args()
     action, folder = args.action, Path(args.folder)
 
-    # Check if folder with duplicates exists already
-    if folder.joinpath("duplicates").exists():
-        log.error("Looks like you've already done your analysis. "
-                  "Either that, or remove \"duplicates\" folder and try again")
-        return
-
     # Retrieve list of files
     log.info(f"Getting list of files from {folder}. It may take a while...")
     files = [f for f in folder.rglob("*") if f.is_file()]
@@ -156,7 +151,7 @@ def main() -> None:
     if action == "delete":
         delete_duplicates(duplicates)
     elif action == "move":
-        move_duplicates(duplicates, Path(args.folder).joinpath("duplicates"))
+        move_duplicates(duplicates, Path(args.folder).joinpath(datetime.now().strftime("%Y-%m-%d_%H%M%S")))
     elif action == "file":
         output_to_file(duplicates)
     else:
